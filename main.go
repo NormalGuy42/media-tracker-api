@@ -13,18 +13,18 @@ import (
 )
 
 type Movie struct {
-	ID          int      `json:"id"`
-	MovieID     int      `json:"movieID"`
-	Title       string   `json:"title"`
-	Poster      string   `json:"poster"`
-	Director    string   `json:"director"`
-	Cast        []string `json:"cast"`
-	Review      string   `json:"review"`
-	Genres      []string `json:"genres"`
-	Watched     bool     `json:"watched"`
-	PlanToWatch bool     `json:"planToWatch"`
-	// Released    string    `json: "released"`
-	CreatedAt time.Time `json: "createdAt"`
+	ID          int       `json:"id,omitempty"`
+	MovieID     int       `json:"movieID"`
+	Title       string    `json:"title,omitempty"`
+	Poster      string    `json:"poster,omitempty"`
+	Director    *[]string `json:"director,omitempty"`
+	Cast        []string  `json:"cast,omitempty"`
+	Review      string    `json:"review,omitempty"`
+	Genres      []string  `json:"genres,omitempty"`
+	Watched     bool      `json:"watched,omitempty"`
+	PlanToWatch bool      `json:"planToWatch,omitempty"`
+	Released    *string   `json:"released,omitempty"`
+	Created_At  time.Time `json:"created_at"`
 }
 
 var client *supabase.Client
@@ -60,10 +60,10 @@ func main() {
 
 	//Movies
 	app.Get("/api/movies", func(c *fiber.Ctx) error { return getMovies(c, client) })
-	app.Get("/api/movies/:id", getMovieByID)
-	app.Post("/api/movies/:id", createMovie)
-	app.Patch("/api/movies/:id", updateMovie)
-	app.Delete("/api/movies/:id", deleteMovie)
+	app.Post("/api/movies", func(c *fiber.Ctx) error { return createMovie(c, client) })
+	app.Get("/api/movies/:id", func(c *fiber.Ctx) error { return getMovieByID(c, client) })
+	app.Patch("/api/movies/:id", func(c *fiber.Ctx) error { return updateMovie(c, client) })
+	app.Delete("/api/movies/:id", func(c *fiber.Ctx) error { return deleteMovie(c, client) })
 
 	//Books
 	// app.Get("/api/books",getBooks)
@@ -104,7 +104,7 @@ func getMovies(c *fiber.Ctx, client *supabase.Client) error {
 	return c.JSON(movies)
 }
 
-func getMovieByID(c *fiber.Ctx) error {
+func getMovieByID(c *fiber.Ctx, client *supabase.Client) error {
 	id := c.Params("id")
 	var movies []Movie
 
@@ -124,10 +124,10 @@ func getMovieByID(c *fiber.Ctx) error {
 	return c.JSON(movies[0])
 }
 
-func createMovie(c *fiber.Ctx) error {
+func createMovie(c *fiber.Ctx, client *supabase.Client) error {
 	var movie Movie
 
-	if err := c.BodyParser(movie); err != nil {
+	if err := c.BodyParser(&movie); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -142,7 +142,8 @@ func createMovie(c *fiber.Ctx) error {
 
 	return c.Status(201).JSON(inserted)
 }
-func updateMovie(c *fiber.Ctx) error {
+
+func updateMovie(c *fiber.Ctx, client *supabase.Client) error {
 	id := c.Params("id")
 	movie := new(Movie)
 
@@ -162,7 +163,7 @@ func updateMovie(c *fiber.Ctx) error {
 
 	return c.JSON(updatedMovie)
 }
-func deleteMovie(c *fiber.Ctx) error {
+func deleteMovie(c *fiber.Ctx, client *supabase.Client) error {
 	id := c.Params("id")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
