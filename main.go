@@ -31,6 +31,12 @@ func main() {
 	app := fiber.New()
 	fmt.Println("Hello World!")
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Fatal(app.Listen(":" + port))
+
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -47,6 +53,7 @@ func main() {
 	}
 
 	app.Get("/", helloWorld)
+
 	//Movies
 	app.Get("/api/movies", func(c *fiber.Ctx) error { return getMovies(c, client) })
 	app.Post("/api/movies", func(c *fiber.Ctx) error { return createMovie(c, client) })
@@ -54,12 +61,6 @@ func main() {
 	app.Patch("/api/movies/:id", func(c *fiber.Ctx) error { return updateMovie(c, client) })
 	app.Delete("/api/movies/:id", func(c *fiber.Ctx) error { return deleteMovie(c, client) })
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	log.Fatal(app.Listen(":" + port))
 }
 
 func helloWorld(c *fiber.Ctx) error {
