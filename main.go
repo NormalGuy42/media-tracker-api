@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	supabase "github.com/lengzuo/supa"
+	"github.com/supabase-community/supabase-go"
 )
 
 type Movie struct {
@@ -38,18 +38,10 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	conf := supabase.Config{
-		// Your project api key, you can use either `anon` or `service_role`.
-		// but i will suggest you to use `service_role` as your api key and keep it secret.
-		ApiKey: os.Getenv("SUPABASE_API_KEY"),
-		// Retrieve your project ref from project url
-		// eg: https://this-your-project-ref.supabase.co
-		ProjectRef: os.Getenv("SUPABASE_PROJECT_REF"),
-		// Set it `false` in production to avoid extra log print.
-		Debug: true,
-	}
+	api_key := os.Getenv("SUPABASE_API_KEY")
+	project_ref := os.Getenv("SUPABASE_PROJECT_REF")
 
-	client, err := supabase.New(conf)
+	client, err := supabase.NewClient(api_key, project_ref, nil)
 
 	if err != nil {
 		fmt.Println("failed in init supa client: ", err)
@@ -93,87 +85,75 @@ func main() {
 }
 
 func getMovies(c *fiber.Ctx, client *supabase.Client) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
 	var movies []Movie
-	if err := client.DB.From("movies").Select("*").Execute(ctx, &movies); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	_, err := client.From("movies").Select("*", "", false).ExecuteTo(&movies)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	return c.JSON(movies)
 }
 
 func getMovieByID(c *fiber.Ctx, client *supabase.Client) error {
 	id := c.Params("id")
 	var movies []Movie
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err := client.DB.From("movies").Select("*").Eq("id", id).Execute(ctx, &movies)
-
+	_, err := client.From("movies").Select("*", "", false).Eq("id", id).ExecuteTo(&movies)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	if len(movies) == 0 {
 		return c.Status(404).JSON(fiber.Map{"error": "Movie not found"})
 	}
-
 	return c.JSON(movies[0])
 }
 
 func createMovie(c *fiber.Ctx, client *supabase.Client) error {
 	var movie Movie
-
 	if err := c.BodyParser(&movie); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	var inserted []Movie
-
-	if err := client.DB.From("movies").Insert(movie).Execute(ctx, &inserted); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.Status(201).JSON(inserted)
-}
-
-func updateMovie(c *fiber.Ctx, client *supabase.Client) error {
-	id := c.Params("id")
-	movie := new(Movie)
-
-	if err := c.BodyParser(movie); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	var updatedMovie []Movie
-
-	err := client.DB.From("movies").Update(movie).Eq("id", id).Execute(ctx, &updatedMovie)
+	data, _, err := client.From("movies").Insert(movie, true, "", "", "").Execute()
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.JSON(updatedMovie)
+	// Safely parse inserted row(s)
+	var inserted []Movie
+	if err := json.Unmarshal(data, &inserted); err != nil {
+		var single Movie
+		if err := json.Unmarshal(data, &single); err == nil {
+			inserted = append(inserted, single)
+		}
+	}
+
+	return c.JSON(inserted)
 }
-func deleteMovie(c *fiber.Ctx, client *supabase.Client) error {
+
+func updateMovie(c *fiber.Ctx, client *supabase.Client) error {
 	id := c.Params("id")
+	var movie Movie
+	if err := c.BodyParser(&movie); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := client.DB.From("movies").Delete().Eq("id", id).Execute(ctx, nil); err != nil {
+	data, _, err := client.From("movies").Update(movie, "", "").Eq("id", id).Execute()
+	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.JSON(fiber.Map{"message": "Movie Deleted"})
+	var updated []Movie
+	_ = json.Unmarshal(data, &updated)
+	return c.JSON(updated)
+}
+
+func deleteMovie(c *fiber.Ctx, client *supabase.Client) error {
+	id := c.Params("id")
+	_, _, err := client.From("movies").Delete("", "").Eq("id", id).Execute()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.Status(204).JSON(fiber.Map{"message": "Movie Deleted"})
 }
 
 //Books
