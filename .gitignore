@@ -1,4 +1,5 @@
 .env
+.env.local
 node_modules
 
 # Compiled Object files and Dynamic libs (Shared Objects)

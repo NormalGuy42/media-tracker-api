@@ -59,31 +59,6 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + port))
-
-	//Books
-	// app.Get("/api/books",getBooks)
-	// app.Get("/api/books/:id",getBookByID)
-	// app.Post("/api/books/:id",createBook)
-	// app.Patch("/api/books/:id",updateBook)
-	// app.Delete("/api/books/:id",deleteBook)
-
-	// //TV Shows
-	// app.Get("/api/shows",getShows)
-	// app.Get("/api/shows/:id",getShowByID)
-	// app.Post("/api/shows/:id",createShow)
-	// app.Patch("/api/shows/:id",updateShow)
-	// app.Delete("/api/shows/:id",deleteShow)
-
-	// //Game
-	// app.Get("/api/games",getGame)
-	// app.Get("/api/games/:id",getGameByID)
-	// app.Post("/api/games/:id",createGame)
-	// app.Patch("/api/games/:id",updateGame)
-	// app.Delete("/api/games/:id",deleteGame)
-
-	// if PORT == "" {
-	// 	PORT = "5000"
-	// }
 }
 
 func getMovies(c *fiber.Ctx, client *supabase.Client) error {
@@ -93,7 +68,7 @@ func getMovies(c *fiber.Ctx, client *supabase.Client) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(movies)
+	return c.Status(200).JSON(movies)
 }
 
 func getMovieByID(c *fiber.Ctx, client *supabase.Client) error {
@@ -106,7 +81,7 @@ func getMovieByID(c *fiber.Ctx, client *supabase.Client) error {
 	if len(movies) == 0 {
 		return c.Status(404).JSON(fiber.Map{"error": "Movie not found"})
 	}
-	return c.JSON(movies[0])
+	return c.Status(200).JSON(movies[0])
 }
 
 func createMovie(c *fiber.Ctx, client *supabase.Client) error {
@@ -129,7 +104,7 @@ func createMovie(c *fiber.Ctx, client *supabase.Client) error {
 		}
 	}
 
-	return c.JSON(inserted)
+	return c.Status(201).JSON(inserted)
 }
 
 func updateMovie(c *fiber.Ctx, client *supabase.Client) error {
