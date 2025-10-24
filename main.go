@@ -46,6 +46,7 @@ func main() {
 		return
 	}
 
+	app.Get("/", helloWorld)
 	//Movies
 	app.Get("/api/movies", func(c *fiber.Ctx) error { return getMovies(c, client) })
 	app.Post("/api/movies", func(c *fiber.Ctx) error { return createMovie(c, client) })
@@ -53,13 +54,17 @@ func main() {
 	app.Patch("/api/movies/:id", func(c *fiber.Ctx) error { return updateMovie(c, client) })
 	app.Delete("/api/movies/:id", func(c *fiber.Ctx) error { return deleteMovie(c, client) })
 
-	// port := os.Getenv("PORT")
-	// if port == "" {
-	// 	port = "8080"
-	// }
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-	// log.Fatal()
-	app.Listen(":8080")
+	log.Fatal(app.Listen(":" + port))
+}
+
+func helloWorld(c *fiber.Ctx) error {
+	fmt.Println()
+	return c.Status(200).JSON(fiber.Map{"message": "Hello World"})
 }
 
 func getMovies(c *fiber.Ctx, client *supabase.Client) error {
