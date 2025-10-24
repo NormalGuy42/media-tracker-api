@@ -53,12 +53,13 @@ func main() {
 	app.Patch("/api/movies/:id", func(c *fiber.Ctx) error { return updateMovie(c, client) })
 	app.Delete("/api/movies/:id", func(c *fiber.Ctx) error { return deleteMovie(c, client) })
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	// port := os.Getenv("PORT")
+	// if port == "" {
+	// 	port = "8080"
+	// }
 
-	log.Fatal(app.Listen(":" + port))
+	// log.Fatal()
+	app.Listen(":8080")
 }
 
 func getMovies(c *fiber.Ctx, client *supabase.Client) error {
