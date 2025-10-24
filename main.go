@@ -27,8 +27,6 @@ type Movie struct {
 	Created_At  time.Time `json:"created_at"`
 }
 
-var client *supabase.Client
-
 func main() {
 	app := fiber.New()
 	fmt.Println("Hello World!")
@@ -48,14 +46,19 @@ func main() {
 		return
 	}
 
-	PORT := os.Getenv("PORT")
-
 	//Movies
 	app.Get("/api/movies", func(c *fiber.Ctx) error { return getMovies(c, client) })
 	app.Post("/api/movies", func(c *fiber.Ctx) error { return createMovie(c, client) })
 	app.Get("/api/movies/:id", func(c *fiber.Ctx) error { return getMovieByID(c, client) })
 	app.Patch("/api/movies/:id", func(c *fiber.Ctx) error { return updateMovie(c, client) })
 	app.Delete("/api/movies/:id", func(c *fiber.Ctx) error { return deleteMovie(c, client) })
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Fatal(app.Listen(":" + port))
 
 	//Books
 	// app.Get("/api/books",getBooks)
@@ -81,7 +84,6 @@ func main() {
 	// if PORT == "" {
 	// 	PORT = "5000"
 	// }
-	log.Fatal(app.Listen(":" + PORT))
 }
 
 func getMovies(c *fiber.Ctx, client *supabase.Client) error {
